@@ -70,7 +70,7 @@ begin
 		case currentState is
 			when idle =>
 				nextBit <= 0;
-				if RXD = '0' then
+				if RXD = '0' then --start bit encountered
 					nextCount <= currentCount + 1;
 					if currentCount = BAUD/2 then
 						nextCount <= 0;

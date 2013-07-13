@@ -19,10 +19,10 @@ end dataDisassembler;
 
 architecture Behavioral of dataDisassembler is
 
-	type state_type is (idle, pushing, sending);
+	type state_type is (idle, pushing);
 	signal currentState, nextState : state_type := idle;
 	
-	signal currentPointer, nextPointer : integer range 0 to INPUTBITS := 0;
+	signal currentPointer, nextPointer : integer range 0 to INPUTBITS/OUTPUTBITS := 0;
 	signal nextDataIn, currentDataIn : unsigned (INPUTBITS-1 downto 0) := (others => '0');
 	signal nextDataOut, currentDataOut : unsigned (OUTPUTBITS - 1 downto 0) := (others => '0');
 	
@@ -58,42 +58,39 @@ begin
 		end if;
 	end process;
 	
-	asynch: process(currentState, dataValid, dataRead)
+	asynch: process(currentState, dataValid, dataRead, currentPointer, currentDataIn, currentDataOut, currentDone, dataIn)
 	begin
 		nextState <= currentState;
 		nextPointer <= currentPointer;
 		nextDataIn <= currentDataIn;
 		nextDataOut <= currentDataOut;
 		nextDone <= currentDone;
-		ready <= '1';
+		ready <= '0';
 	
 		case currentState is
 			when idle =>
-				ready <= '1';
+				ready <= '0';
 				nextDone <= '0';
 				if dataValid = '1' then
 					nextDataIn <= dataIn;
 					nextState <= pushing;
-					nextDataOut <= dataIn(INPUTBITS - currentPointer - 1 downto INPUTBITS - OUTPUTBITS - currentPointer);
+					nextDataOut <= dataIn(INPUTBITS - currentPointer*OUTPUTBITS - 1 downto INPUTBITS - (currentPointer+1)*OUTPUTBITS);
 					ready <= '0';
 				end if;
 			
 			when pushing =>
-				ready <= '0';
-				nextDataOut <= currentDataIn(INPUTBITS - currentPointer - 1 downto INPUTBITS - OUTPUTBITS - currentPointer);
+				ready <= '1';
+				nextDataOut <= currentDataIn(INPUTBITS - currentPointer*OUTPUTBITS - 1 downto INPUTBITS - (currentPointer+1)*OUTPUTBITS);
 				
 				if dataRead = '1' then
-					nextPointer <= currentPointer + OUTPUTBITS;
+					nextPointer <= currentPointer + 1;
 					
-					if (currentPointer + OUTPUTBITS = INPUTBITS) then
+					if ((currentPointer + 1)*OUTPUTBITS = INPUTBITS) then
 						nextPointer <= 0;
 						nextState <= idle;
 						nextDone <= '1';
 					end if;
 				end if;
-				
-				
-			when others =>
 				
 			
 		end case;

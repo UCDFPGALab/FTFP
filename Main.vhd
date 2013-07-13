@@ -67,13 +67,14 @@ architecture Behavioral of Main is
 	end component;
 	
 	component preBuffer is
-	generic (SETUP : integer := 1;
+	generic (SIZE  : integer := 128;
+				SETUP : integer := 1;
 				HOLD  : integer := 1); -- in clock cycles
 	port    (clk      : in std_logic;
 		      reset    : in std_logic;
-		      dataIn   : in unsigned(7 downto 0);
+		      dataIn   : in unsigned(SIZE - 1 downto 0);
 				dataInValid : in std_logic;
-				dataOut  : out unsigned(7 downto 0);
+				dataOut  : out unsigned(SIZE - 1 downto 0);
 				valid    : out std_logic);
 	end component;
 	
@@ -154,12 +155,14 @@ architecture Behavioral of Main is
 	
 	--Buffer signals
 	signal inputBufReset, inputBufRead, inputBufReady, outputBufReset, outputBufRead, outputBufReady : std_logic := '0';
-	signal inputBufDataIn, inputBufDataOut, outputBufDataIn, outputBufDataOut : unsigned(SIZEOFCELL-1 downto 0);
-	signal inputBufEntries, outputBufEntries : integer range 0 to SIZEOFBUFFER := 0;
+	signal inputBufDataIn, inputBufDataOut : unsigned(SIZEOFCELLBUFFIN-1 downto 0) := (others => '0');
+	signal outputBufDataIn, outputBufDataOut : unsigned(SIZEOFCELLBUFFOUT-1 downto 0) := (others => '0');
+	signal inputBufEntries : integer range 0 to SIZEOFBUFFERBUFFIN := 0;
+	signal outputBufEntries : integer range 0 to SIZEOFBUFFERBUFFOUT := 0;
 	
 	--Pre buffer signals
 	signal preBufInValid, preBufValid, preBufReset : std_logic := '0';
-	signal preBufDataIn, preBufDataOut : unsigned(7 downto 0) := (others => '0');
+	signal preBufDataIn, preBufDataOut : unsigned(SIZEOFCELLBUFFIN - 1 downto 0) := (others => '0');
 	
 	--Assembler/Disassembler signals
 	signal dataAssReset, dataDissReset, dataAssInValid, dataAssReady, dataAssDone, dataDissValid, dataDissRead, dataDissReady, dataDissDone : std_logic := '0';
@@ -238,6 +241,7 @@ begin
 	preBuffer1: preBuffer
 	generic map 
 		(
+			SIZE => SIZEOFCELLBUFFIN,
 			SETUP => 15,
 			HOLD  => 5 -- in clock cycles
 		 )
@@ -283,20 +287,6 @@ begin
 			valueRead      => outputBufRead, --should be asserted when you've read the current output value
 			entries        => outputBufEntries,
 			outputData     => outputBufDataOut
-		);
-		
-	timeoutTT: ClockDivider
-	generic map
-		(
-			divider => 50000000,
-			lengthOfHi => 1 --in clock cycles, has to be less than divider, more than 1
-		)
-	port map
-		(
-			clk    => clk,
-			reset  => ttReset,
-			enable => ttEnable,
-			tick   => tt
 		);
 		
 	dataAss1: dataAssembler
@@ -379,19 +369,92 @@ begin
 --	transStart <= recValid;
 						
 --Buffer test code block
-
-	preBufDataIn <= recChar;
+					
+					
+	--reciever to assembler connection
+	dataAssIn <= recChar;
+	dataAssInValid <= recValid;
+		
+	--Assembler to pre buffer connection
+	preBufDataIn <= dataAssOut;
+	preBufInValid <= dataAssDone;
+	
+	--Prebuffer to input buffer connection
 	inputBufDataIn <= preBufDataOut;
-	preBufInValid <= recValid;
 	inputBufReady <= preBufValid;
-	transChar <= inputBufDataOut;
-	inputBufRead <= transDone;
-					  
+	
+	--Input buffer to disassembler connection
+	dataDissIn <= inputBufDataOut;
+		-- $$$$$ inputBufRead and dataDissValid need to be toggled here by a process $$$$$
+			-- until inputBufEntries = 0;
+			-- only once right now, really
+		
+		BuffDiss: process(clk)
+		variable state : integer range 0 to 2 := 0;
+		begin
+			if rising_edge(clk) then
+				inputBufRead <= '0';
+				dataDissValid <= '0';
+				if inputBufEntries /= 0 and state = 0 then
+					inputBufRead <= '0';
+					dataDissValid <= '1';
+					state := 1;
+				elsif state = 1 then
+					dataDissValid <= '0';
+					inputBufRead <= '1';
+					state := 2;
+				elsif state = 2 then
+					inputBufRead <= '1';
+					state := 0;
+				end if;
+			end if;
+		end process;
+			
+	assert false report "******SKIPPING THE PIPELINE CONNECTION RIGHT NOW******" severity warning;
+	assert false report "*****THERE IS CURRENTLY NO OUTPUT BUFFER PREBUFFER CONNECTED******" severity warning;
+	
+	--Disassembler to output buffer connection
+	outputBufDataIn <= dataDissOut;
+		--$$$$$$ dataDissRead and and outputBufReady need to be toggled here by a process $$$$$$$$$
+			-- until dataDissDone
+	
+	
+	--All resets 0 to get rid of warning messages for now, write init procedure later
+	globalReset <= '0';
+	
+	
+		DissBuff: process(clk)
+		variable state : integer range 0 to 2 := 0;
+		begin
+			if rising_edge(clk) then
+				outputBufReady <= '0';
+				dataDissRead <= '0';
+				if dataDissReady = '1' and state = 0 then
+					dataDissRead <= '0';
+					outputBufReady <= '1';
+					state := 1;
+				elsif state = 1 then
+					dataDissRead <= '1';
+					outputBufReady <= '0';
+					state := 2;
+				elsif state = 2 then
+					dataDissRead <= '0';
+					outputBufReady <= '0';
+					state := 0;
+				end if;
+			end if;
+		end process;
+			
+	--OutputBuffer to transmitter connection
+	transChar <= outputBufDataOut;
+	
+	outputBufRead <= transStart;
+					
 	ReadMonitor: process(clk)
 	variable state : integer range 0 to 3;
 	begin
 		if rising_edge(clk) then
-			if state = 0 and recChar = "00100100" and recValid = '1' and inputBufEntries /= 0 then
+			if state = 0 and recChar = "00100100" and recValid = '1' and outputBufEntries /= 0 then
 				transStart <= '1';
 				state := 1;
 			elsif state = 1 then
@@ -400,7 +463,7 @@ begin
 					state := 2;
 				end if;
 			elsif state = 2 then
-				if inputBufEntries /= 0 then
+				if outputBufEntries /= 0 then
 					transStart <= '1';
 					state := 1;
 				else

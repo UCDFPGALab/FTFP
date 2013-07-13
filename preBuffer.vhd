@@ -6,13 +6,14 @@ use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.ALL;
 
 entity preBuffer is
-	generic (SETUP : integer := 1;
+	generic (SIZE  : integer := 128;
+				SETUP : integer := 1;
 				HOLD  : integer := 1); -- in clock cycles
 	port    (clk      : in std_logic;
 		      reset    : in std_logic;
-		      dataIn   : in unsigned(7 downto 0);
+		      dataIn   : in unsigned(SIZE - 1 downto 0);
 				dataInValid : in std_logic;
-				dataOut  : out unsigned(7 downto 0);
+				dataOut  : out unsigned(SIZE - 1 downto 0);
 				valid    : out std_logic);
 end preBuffer;
 
@@ -21,7 +22,7 @@ architecture Behavioral of preBuffer is
 	type state_type is (idle, setupstate, push);
 	signal currentState, nextState : state_type := idle;
 
-	signal currentData, nextData : unsigned (7 downto 0) := (others => '0');
+	signal currentData, nextData : unsigned (SIZE - 1 downto 0) := (others => '0');
 	signal currentCounter, nextCounter : integer range 0 to (SETUP+HOLD) := 0;
 	signal nextValid, currentValid : std_logic := '0';
 begin
@@ -47,7 +48,7 @@ begin
 		end if;
 	end process;
 
-	asynch: process(dataIn, currentData, currentCounter, currentState, currentValid)
+	asynch: process(dataIn, currentData, currentCounter, currentState, currentValid, dataInValid)
 	begin
 	
 		nextData <= currentData;

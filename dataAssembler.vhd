@@ -18,11 +18,11 @@ end dataAssembler;
 
 architecture Behavioral of dataAssembler is
 
-	type state_type is (idle, getting, sending);
+	type state_type is (idle, getting);
 	signal currentState, nextState : state_type := idle;
 	
-	signal currentPointer, nextPointer : integer range 0 to OUTPUTBITS := 0;
-	signal currentDataOut : unsigned (OUTPUTBITS-1 downto 0) := (others => '0');
+	signal currentPointer, nextPointer : integer range 0 to OUTPUTBITS/INPUTBITS := 0;
+	signal currentDataOut, nextDataOut : unsigned (OUTPUTBITS-1 downto 0) := (others => '0');
 	
 	signal currentDone, nextDone : std_logic := '0';
 
@@ -45,29 +45,30 @@ begin
 			currentState <= idle;
 			currentPointer <= 0;
 			currentDone <= '0';
+			currentDataOut <= (others => '0');
 		elsif rising_edge(clk) then
 			currentState <= nextState;
 			currentPointer <= nextPointer;
 			currentDone <= nextDone;
-			if currentPointer /= nextPointer then
-				currentDataOut(OUTPUTBITS-1-currentPointer downto OUTPUTBITS-currentPointer-INPUTBITS ) <= dataIn;
-			end if;
+			currentDataOut <= nextDataOut;
 		end if;
 	end process;
 	
-	asynch: process(currentState, dataValid)
+	asynch: process(currentState, dataValid, currentPointer, currentDone, currentDataOut, dataIn)
 	begin
 	
 		nextState <= currentState;
 		nextPointer <= currentPointer;
 		nextDone <= currentDone;
+		nextDataOut <= currentDataOut;
 		ready <= '1';
 	
 		case currentState is
 			when idle =>
 				nextDone <= '0';
 				if dataValid = '1' then
-					nextPointer <= currentPointer + INPUTBITS;
+					nextPointer <= currentPointer + 1;
+					nextDataOut(OUTPUTBITS - 1 - currentPointer*INPUTBITS downto OUTPUTBITS - INPUTBITS - currentPointer*INPUTBITS) <= dataIn;
 					nextState <= getting;
 					ready <= '0';
 				end if;
@@ -75,10 +76,11 @@ begin
 			when getting =>
 				ready <= '0';
 				if dataValid = '1' then
-					nextPointer <= currentPointer + INPUTBITS;
+					nextPointer <= currentPointer + 1;
+					nextDataOut(OUTPUTBITS - 1 - currentPointer*INPUTBITS downto OUTPUTBITS - INPUTBITS - currentPointer*INPUTBITS) <= dataIn;
 				end if;
 				
-				if (currentPointer + INPUTBITS = OUTPUTBITS) then
+				if ((currentPointer + 1)*INPUTBITS = OUTPUTBITS) then
 					nextPointer <= 0;
 					nextDone <= '1';
 					nextState <= idle;

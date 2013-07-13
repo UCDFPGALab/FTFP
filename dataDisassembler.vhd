@@ -22,7 +22,7 @@ architecture Behavioral of dataDisassembler is
 	type state_type is (idle, pushing);
 	signal currentState, nextState : state_type := idle;
 	
-	signal currentPointer, nextPointer : integer range 0 to INPUTBITS/OUTPUTBITS := 0;
+	signal currentPointer, nextPointer : integer range 0 to INPUTBITS/OUTPUTBITS - 1 := 0;
 	signal nextDataIn, currentDataIn : unsigned (INPUTBITS-1 downto 0) := (others => '0');
 	signal nextDataOut, currentDataOut : unsigned (OUTPUTBITS - 1 downto 0) := (others => '0');
 	

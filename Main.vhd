@@ -11,7 +11,6 @@ entity Main is
 		SYSCLK_P : in std_logic;
 		SYSCLK_N : in std_logic;
 		USB_UART_RX : in std_logic;
-		GPIO_BUTTON0 : in std_logic;
 		USB_UART_TX : out std_logic
 		);
 end Main;
@@ -120,7 +119,7 @@ architecture Behavioral of Main is
 	
 	--Buffer constants
 	constant SIZEOFCELLBUFFIN : integer := 128; -- size of each cell in the buffer (in bits)
-	constant SIZEOFBUFFERBUFFIN : integer := 1; -- number of cells in buffer
+	constant SIZEOFBUFFERBUFFIN : integer := 3; -- number of cells in buffer
 	constant SIZEOFCELLBUFFOUT : integer := 8;
 	constant SIZEOFBUFFERBUFFOUT : integer := 50;
 	
@@ -363,17 +362,28 @@ begin
 						'1' when others;	
 						
 						
---Loopback setup
---	transChar <= recChar;
-
---	transStart <= recValid;
-						
---Buffer test code block
+	--Loopback setup
+		--	transChar <= recChar;
+		--	transStart <= recValid;
 					
-					
+	--FLOW DIAGRAM
+	--
+   --			     +--------+        +---------+     +---------+     +------------+
+   --	From comp->|RECIEVER+------->+ASSEMBLER+---->+PREBUFFER+---->+INPUT BUFFER+--+
+   -- 			  +--------+        +---------+     +---------+     +------------+  |
+   --          	  	                                                              |
+   --  +---------------------------------------------------------------------------+
+   --  |
+   --  |  +--------+        +------------+    +-------------+      +-----------+
+   --  +->+PIPELINE+------->+DISASSEMBLER+--->+OUTPUT BUFFER+------+TRANSMITTER|---> TO COMPUTER
+   --     +--------+        +------------+    +-------------+      +-----------+
+	
 	--reciever to assembler connection
 	dataAssIn <= recChar;
-	dataAssInValid <= recValid;
+	
+	with recChar select								--makes it ignore the '$'
+	dataAssInValid <= '0' when "00100100",
+							recValid when others;
 		
 	--Assembler to pre buffer connection
 	preBufDataIn <= dataAssOut;
@@ -473,5 +483,6 @@ begin
 		end if;
 	end process;
 	
+
 
 end Behavioral;

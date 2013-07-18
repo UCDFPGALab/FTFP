@@ -19,150 +19,174 @@ end Pipeline;
 
 architecture Behavioral of Pipeline is
 
-	subtype tmp is unsigned(INTSIZE - 1 downto 0);
-	type memory_array is array(integer range 0 to ROWS-1, integer range 0 to COLUMNS-1) of tmp;
+signal currentValid : std_logic := '0';
 
 begin
 
 ----loopback test
---	dataOut <= dataIn;
---	valid <= dataInValid;
---	
---	gen1: for row in 0 to ROWS - 1 generate
---		gen2: for column in 0 to COLUMNS - 1 generate
---			signal sum : unsigned (7 downto 0) := (others => '0');
---			begin
---				sum <= dataIn(7 downto 0);
-----			row = 0;
-----			row = ROWS - 1;
-----			column = 0;
-----			column = COLUMNS - 1;
---			
---				
---		end generate gen2;
---	end generate gen1;
+	dataOut <= dataIn;
 
-	algorithm: process(clk, reset)
-	variable right, left, up, down : boolean := false;
-	
-	variable result : unsigned(INTSIZE-1 downto 0) := (others => '0');
-	
-	variable memory : memory_array := (others=>(others=>(others=>'0')));
-	
-	variable started : boolean := false;
-	
-	variable memtemp : unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0) := (others => '0');
-	
-	begin				
-		if reset = '1' then
-			--reset conditions
-			result := (others => '0');
-			started := false;
-			memory := (others=>(others=>(others=>'0')));
-			valid <= '0';
-			state := 0;
-		elsif rising_edge(clk) then
-			if started = false and dataInValid = '1' then --initial latching of data
-				valid <= '0';
-				result := (others => '0');
-				started := true;
-				state := 0;
-				--need to shove the input massif into a nice "array"
-				for i in 0 to ROWS - 1 loop
-					for j in 0 to COLUMNS - 1 loop
-						memory(i,j) := dataIn(INTSIZE*(COLUMNS*ROWS - j - i*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - j - i*COLUMNS) - 8);
-					end loop;
-				end loop;
-			elsif started then
-				valid <= '0';
-		
-				for row in 0 to ROWS - 1 loop
-					for column in 0 to COLUMNS - 1 loop
-				
-						if row = 0 then
-							up := false;
-							down := true;
-						elsif row = ROWS - 1 then
-							down := false;
-							up := true;
-						else
-							down := true;
-							up := true;
-						end if;
-						
-						if column = 0 then
-							left := false;
-							right := true;
-						elsif column = COLUMNS - 1 then
-							left := true;
-							right := false;
-						else
-							left := true;
-							right := true;
-						end if;
-				
-			--do the algorithm: Sum up all the surrounding elements with the current element and add them in
-						result := memory(row, column);
-				
---						assert false report "Memory with row " & integer'image(row) & " and column " & integer'image(column) & " = " & integer'image(to_integer(memory(row,column)))
---							severity note;
-				
-						if up and left then
-							result := result + memory(row - 1, column - 1);
---							assert false report "Up and left makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-						if up then
-							result := result + memory(row - 1, column);
---							assert false report "Up makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-						if up and right then
-							result := result + memory(row - 1, column + 1);
---							assert false report "Up and right makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-						if left then
-							result := result + memory(row, column - 1);
---							assert false report "Left makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-						if right then 
-							result := result + memory(row, column + 1);
---							assert false report "Right makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-						if down and left then
-							result := result + memory(row + 1, column - 1);
---							assert false report "Down and left makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-						if down then
-							result := result + memory(row + 1, column);
---							assert false report "Down makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-						if down and right then
-							result := result + memory(row + 1, column + 1);
---							assert false report "Down and right makes result " & integer'image(to_integer(result)) severity note;
-						end if;
-				
-				--load the result back in the memory array
-					
-						memtemp(INTSIZE*(COLUMNS*ROWS - row*COLUMNS - column) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) := result;
-					
---						assert false report "Memory with row " & integer'image(row) & " and column " & integer'image(column) &
---							" written to memtemp " & integer'image(INTSIZE*(COLUMNS*ROWS - row - column*COLUMNS) - 1) & " down to " & 
---							integer'image(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) & " with value " & integer'image(to_integer(result))
---							severity note;
-				
-				--Now load the memory array back into the dataOut
-					end loop;
-				end loop;
-			end if;
-			
-		end if;
-	end process;
+	valid <= dataInValid;
+--
+--	process(clk, reset)
+--	variable state : integer range 0 to 3 := 0;
+--	begin
+--		if reset = '1' then
+--			currentValid <= '0';
+--			state := 0;
+--		elsif falling_edge(clk) then
+--			currentValid <= '0';
+--			if state = 0 and dataInValid = '1' then
+--				state := 1;
+--			elsif state /= 3 then
+--				state := state + 1;
+--			elsif state = 3 then
+--				state := 0;
+--				currentValid <= '1';
+--			end if;
+--		end if;
+--	end process;
+--
+--	-- inspired by alonho/game_of_life_vhdl
+--	outer: for row in 0 to ROWS - 1 generate
+--      inner: for column in 0 to COLUMNS - 1 generate
+--            upper_left: if (row = 0 and column = 0) generate
+--					
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 8) -- right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 8) --bottom
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 8); -- bottom right
+--	
+--            end generate upper_left;
+--            upper: if (column > 0 and column < COLUMNS - 1 and row = 0) generate 
+--				
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 8) -- left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 8) -- right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 8) -- bottom left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 8) --bottom
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 8); -- bottom right
+--              
+--            end generate upper;
+--            upper_right: if (column = COLUMNS - 1 and row = 0) generate 
+--				
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 8) -- left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 8) -- bottom left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 8); --bottom
+--              
+--            end generate upper_right;
+--            left: if (column = 0 and row > 0 and row < ROWS - 1) generate 
+--									dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 8) -- top
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 8) -- top right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 8) -- right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 8) --bottom
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 8); -- bottom right
+--             
+--            end generate left;
+--            middle: if (column > 0 and column < COLUMNS - 1 and row > 0 and row < ROWS - 1) generate 
+--				
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 8) --top left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 8) -- top
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 8) -- top right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 8) -- left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 8) -- right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 8) -- bottom left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 8) --bottom
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row+1)*COLUMNS) - 8); -- bottom right
+--              
+--            end generate middle;
+--            right: if (column = COLUMNS - 1 and row > 0 and row < ROWS - 1) generate 
+--				
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 8) --top left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 8) -- top
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 8) -- left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row+1)*COLUMNS) - 8) -- bottom left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row+1)*COLUMNS) - 8); --bottom
+--         
+--            end generate right;
+--            lower_left: if (column = 0 and row = ROWS - 1) generate 
+--					
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 8) -- top
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 8) -- top right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 8); -- right
+--              
+--            end generate lower_left;
+--            lower: if (column > 0 and column < COLUMNS - 1 and row = ROWS - 1) generate 
+--					
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 8) --top left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 8) -- top
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row-1)*COLUMNS) - 8) -- top right
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 8) -- left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column+1) - (row)*COLUMNS) - 8); -- right
+--              
+--            end generate lower;
+--            lower_right: if (column = COLUMNS - 1 and row = ROWS - 1) generate 
+--				
+--					dataOut(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8)
+--						<= dataIn(INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - column - row*COLUMNS) - 8) --itself
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row-1)*COLUMNS) - 8) --top left
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column) - (row-1)*COLUMNS) - 8) -- top
+--						+ dataIn(INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - (column-1) - (row)*COLUMNS) - 8); -- left
+--              
+--            end generate lower_right;
+--        end generate inner;
+--    end generate outer;
+
+--	algorithm: process(clk, reset)
+--	variable right, left, up, down : boolean := false;
+--	
+--	variable result : unsigned(INTSIZE-1 downto 0) := (others => '0');
+--	
+--	variable memory : memory_array := (others=>(others=>(others=>'0')));
+--	
+--	variable started : boolean := false;
+--	
+--	variable memtemp : unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0) := (others => '0');
+--	
+--	variable row : integer range 0 to ROWS - 1 := 0;
+--	variable column : integer range 0 to COLUMNS - 1 := 0;
+--	
+--	begin				
+--		if reset = '1' then
+--			--reset conditions
+--			result := (others => '0');
+--			started := false;
+--			valid <= '0';
+--			row := 0;
+--			column := 0;
+--		elsif rising_edge(clk) then
+--			if started = false and dataInValid = '1' then --initial latching of data
+--				valid <= '0';
+--				row := 0;
+--				column := 0;
+--				result := (others => '0');
+--				started := true;
+--				--need to shove the input massif into a nice "array"
+--				for i in 0 to ROWS - 1 loop
+--					for j in 0 to COLUMNS - 1 loop
+--						memory(i,j) := dataIn(INTSIZE*(COLUMNS*ROWS - j - i*COLUMNS) - 1 downto INTSIZE*(COLUMNS*ROWS - j - i*COLUMNS) - 8);
+--					end loop;
+--				end loop;
+--			elsif started then
+--
+--			end if;
+--			
+--		end if;
+--	end process;
 
 
 end Behavioral;

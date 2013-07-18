@@ -14,7 +14,6 @@ ARCHITECTURE behavior OF MainTest IS
          SYSCLK_P : IN  std_logic;
          SYSCLK_N : IN  std_logic;
          USB_UART_RX : IN  std_logic;
-         GPIO_BUTTON0 : IN  std_logic;
          USB_UART_TX : OUT  std_logic
         );
     END COMPONENT;
@@ -42,7 +41,6 @@ BEGIN
           SYSCLK_P => SYSCLK_P,
           SYSCLK_N => SYSCLK_N,
           USB_UART_RX => USB_UART_RX,
-          GPIO_BUTTON0 => GPIO_BUTTON0,
           USB_UART_TX => USB_UART_TX
         );
 

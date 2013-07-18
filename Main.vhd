@@ -106,6 +106,21 @@ architecture Behavioral of Main is
 		      done      : out std_logic);
 	end component;
 	
+	component Pipeline is
+	generic (SETUP : integer := 1; --time after the "start" pulse that the pipeline waits to start operating
+				HOLD  : integer := 1; --time after the pipeline is done that it waits to send the "done" pulse
+				ROWS : integer := 4; -- size in ints
+				COLUMNS : integer := 4;
+				INTSIZE : integer := 8 -- size of the int in bits, 4 for the 3 digit HEX example
+				);
+	port    (clk      : in std_logic;
+		      reset    : in std_logic;
+		      dataIn   : in unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0);
+				dataInValid : in std_logic;
+				dataOut  : out unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0);
+				valid    : out std_logic);
+	end component;
+	
 	--********************************************************************************************--
 	--****************************************CONSTANT********************************************--
 	--********************************************************************************************--
@@ -167,6 +182,10 @@ architecture Behavioral of Main is
 	signal dataAssReset, dataDissReset, dataAssInValid, dataAssReady, dataAssDone, dataDissValid, dataDissRead, dataDissReady, dataDissDone : std_logic := '0';
 	signal dataAssIn, dataDissOut : unsigned (BROKENBITS - 1 downto 0) := (others => '0');
 	signal dataAssOut, dataDissIn : unsigned (LUMPBITS - 1 downto 0) := (others => '0');
+	
+	--Algorithm signals
+	signal algreset, algDataInValid, algValid : std_logic := '0';
+	signal algDataIn, algDataOut : unsigned (SIZEOFCELLBUFFIN - 1 downto 0) := (others => '0');
 
 begin
 
@@ -327,6 +346,25 @@ begin
 		   done      => dataDissDone
 		);
 		
+	Alg: Pipeline
+	generic map
+		(
+			SETUP => 1, --time after the "start" pulse that the pipeline waits to start operating
+			HOLD  => 1, --time after the pipeline is done that it waits to send the "done" pulse
+			ROWS => 4, -- size in ints
+			COLUMNS => 4,
+			INTSIZE => 8 -- size of the int in bits, 4 for the 3 digit HEX example
+		)
+	port map
+		(
+			clk      => clk,
+		   reset    => algReset,
+		   dataIn   => algDataIn,
+			dataInValid => algDataInValid,
+			dataOut  => algDataOut,
+			valid    => algValid
+		);
+		
 	
 	--********************************************************************************************--
 	--****************************************CODE************************************************--
@@ -393,35 +431,34 @@ begin
 	inputBufDataIn <= preBufDataOut;
 	inputBufReady <= preBufValid;
 	
-	--Input buffer to disassembler connection
-	dataDissIn <= inputBufDataOut;
-		-- $$$$$ inputBufRead and dataDissValid need to be toggled here by a process $$$$$
-			-- until inputBufEntries = 0;
-			-- only once right now, really
-		
-		BuffDiss: process(clk)
+	--Input buffer to pipeline connection
+	algDataIn <= inputBufDataOut;
+	
+		BuffAlg: process(clk)
 		variable state : integer range 0 to 2 := 0;
 		begin
 			if rising_edge(clk) then
 				inputBufRead <= '0';
-				dataDissValid <= '0';
+				algDataInValid <= '0';
 				if inputBufEntries /= 0 and state = 0 then
 					inputBufRead <= '0';
-					dataDissValid <= '1';
+					algDataInValid <= '1';
 					state := 1;
 				elsif state = 1 then
-					dataDissValid <= '0';
+					algDataInValid <= '0';
 					inputBufRead <= '1';
 					state := 2;
 				elsif state = 2 then
-					inputBufRead <= '1';
+					inputBufRead <= '0';
 					state := 0;
 				end if;
 			end if;
 		end process;
-			
-	assert false report "******SKIPPING THE PIPELINE CONNECTION RIGHT NOW******" severity warning;
-	assert false report "*****THERE IS CURRENTLY NO OUTPUT BUFFER PREBUFFER CONNECTED******" severity warning;
+	
+	--Pipeline to disassembler connection
+	dataDissIn <= algDataOut;
+	dataDissValid <= algValid;
+		
 	
 	--Disassembler to output buffer connection
 	outputBufDataIn <= dataDissOut;
@@ -464,7 +501,7 @@ begin
 	variable state : integer range 0 to 3;
 	begin
 		if rising_edge(clk) then
-			if state = 0 and recChar = "00100100" and recValid = '1' and outputBufEntries /= 0 then
+			if state = 0 and outputBufEntries /= 0 then
 				transStart <= '1';
 				state := 1;
 			elsif state = 1 then

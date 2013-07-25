@@ -149,6 +149,9 @@ architecture Behavioral of Main is
 	constant DELAY1  : integer := 15;
 	constant DELAY2 : integer := 2;
 	
+	--Algorithm constants
+	constant INTSIZE : integer := 8; --size of each int in bytes
+	
 	--********************************************************************************************--
 	--****************************************SIGNALS*********************************************--
 	--********************************************************************************************--
@@ -353,7 +356,7 @@ begin
 			HOLD  => 1, --time after the pipeline is done that it waits to send the "done" pulse
 			ROWS => 4, -- size in ints
 			COLUMNS => 4,
-			INTSIZE => 8 -- size of the int in bits, 4 for the 3 digit HEX example
+			INTSIZE => INTSIZE -- size of the int in bits, 4 for the 3 digit HEX example
 		)
 	port map
 		(

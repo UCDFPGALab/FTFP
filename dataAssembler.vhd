@@ -11,8 +11,8 @@ entity dataAssembler is
 		      reset     : in std_logic;
 		      dataIn    : in unsigned(inputBits-1 downto 0);
 				dataValid : in std_logic;
-				ready     : out std_logic;
 				dataOut   : out unsigned(outputBits-1 downto 0);
+				idleOut      : out std_logic;
 		      done      : out std_logic);
 end dataAssembler;
 
@@ -61,20 +61,20 @@ begin
 		nextPointer <= currentPointer;
 		nextDone <= currentDone;
 		nextDataOut <= currentDataOut;
-		ready <= '1';
+		idleOut <= '0';
 	
 		case currentState is
 			when idle =>
 				nextDone <= '0';
+				idleOut <= '1';
 				if dataValid = '1' then
 					nextPointer <= currentPointer + 1;
 					nextDataOut(OUTPUTBITS - 1 - currentPointer*INPUTBITS downto OUTPUTBITS - INPUTBITS - currentPointer*INPUTBITS) <= dataIn;
 					nextState <= getting;
-					ready <= '0';
+					idleOut <= '0';
 				end if;
 			
 			when getting =>
-				ready <= '0';
 				if dataValid = '1' then
 					nextPointer <= currentPointer + 1;
 					nextDataOut(OUTPUTBITS - 1 - currentPointer*INPUTBITS downto OUTPUTBITS - INPUTBITS - currentPointer*INPUTBITS) <= dataIn;

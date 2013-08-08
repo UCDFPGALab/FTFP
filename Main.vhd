@@ -86,7 +86,7 @@ architecture Behavioral of Main is
 		      reset     : in std_logic;
 		      dataIn    : in unsigned(inputBits-1 downto 0);
 				dataValid : in std_logic;
-				ready     : out std_logic;
+				idleOut     : out std_logic;
 				dataOut   : out unsigned(outputBits-1 downto 0);
 		      done      : out std_logic);
 	end component;
@@ -101,8 +101,9 @@ architecture Behavioral of Main is
 		      dataIn    : in unsigned(inputBits-1 downto 0);
 				dataValid : in std_logic;
 				dataRead  : in std_logic;
-				ready     : out std_logic;
+				idleOut   : out std_logic;
 				dataOut   : out unsigned(outputBits-1 downto 0);
+				dataOutReady     : out std_logic;
 		      done      : out std_logic);
 	end component;
 	
@@ -133,10 +134,8 @@ architecture Behavioral of Main is
 	constant PARITY : boolean := false; --not implemented yet, keep false
 	
 	--Buffer constants
-	constant SIZEOFCELLBUFFIN : integer := 128; -- size of each cell in the buffer (in bits)
-	constant SIZEOFBUFFERBUFFIN : integer := 3; -- number of cells in buffer
-	constant SIZEOFCELLBUFFOUT : integer := 8;
-	constant SIZEOFBUFFERBUFFOUT : integer := 50;
+	constant SIZEOFCELL : integer := 128; -- size of each cell in the buffer (in bits)
+	constant SIZEOFBUFFER : integer := 3; -- number of cells in buffer
 	
 	--PreBuffer constants
 	--Stable configs: SIZEOFCELL/SIZEOFBUFFER/SETUP/HOLD (8/300/15/5)
@@ -144,8 +143,8 @@ architecture Behavioral of Main is
 	constant HOLD : integer := 5; --how many clock cycles to keep the data valid after sending the "store" signal
 	
 	--Disassembler/assembler constants
-	constant BROKENBITS   : integer := SIZEOFCELLBUFFOUT;
-	constant	LUMPBITS  : integer := SIZEOFCELLBUFFIN;
+	constant BROKENBITS   : integer := 8;
+	constant	LUMPBITS  : integer := SIZEOFCELLBUFF;
 	constant DELAY1  : integer := 15;
 	constant DELAY2 : integer := 2;
 	
@@ -172,23 +171,23 @@ architecture Behavioral of Main is
 	
 	--Buffer signals
 	signal inputBufReset, inputBufRead, inputBufReady, outputBufReset, outputBufRead, outputBufReady : std_logic := '0';
-	signal inputBufDataIn, inputBufDataOut : unsigned(SIZEOFCELLBUFFIN-1 downto 0) := (others => '0');
-	signal outputBufDataIn, outputBufDataOut : unsigned(SIZEOFCELLBUFFOUT-1 downto 0) := (others => '0');
-	signal inputBufEntries : integer range 0 to SIZEOFBUFFERBUFFIN := 0;
-	signal outputBufEntries : integer range 0 to SIZEOFBUFFERBUFFOUT := 0;
+	signal inputBufDataIn, inputBufDataOut : unsigned(SIZEOFCELL-1 downto 0) := (others => '0');
+	signal outputBufDataIn, outputBufDataOut : unsigned(SIZEOFCELL-1 downto 0) := (others => '0');
+	signal inputBufEntries : integer range 0 to SIZEOFBUFFER := 0;
+	signal outputBufEntries : integer range 0 to SIZEOFBUFFER := 0;
 	
 	--Pre buffer signals
 	signal preBufInValid, preBufValid, preBufReset : std_logic := '0';
-	signal preBufDataIn, preBufDataOut : unsigned(SIZEOFCELLBUFFIN - 1 downto 0) := (others => '0');
+	signal preBufDataIn, preBufDataOut : unsigned(SIZEOFCELL - 1 downto 0) := (others => '0');
 	
 	--Assembler/Disassembler signals
-	signal dataAssReset, dataDissReset, dataAssInValid, dataAssReady, dataAssDone, dataDissValid, dataDissRead, dataDissReady, dataDissDone : std_logic := '0';
+	signal dataAssReset, dataDissReset, dataAssInValid, dataAssIdle, dataDissIdle, dataAssDone, dataDissValid, dataDissRead, dataDissDone, dataDissDataOutReady : std_logic := '0';
 	signal dataAssIn, dataDissOut : unsigned (BROKENBITS - 1 downto 0) := (others => '0');
 	signal dataAssOut, dataDissIn : unsigned (LUMPBITS - 1 downto 0) := (others => '0');
 	
 	--Algorithm signals
 	signal algreset, algDataInValid, algValid : std_logic := '0';
-	signal algDataIn, algDataOut : unsigned (SIZEOFCELLBUFFIN - 1 downto 0) := (others => '0');
+	signal algDataIn, algDataOut : unsigned (SIZEOFCELL - 1 downto 0) := (others => '0');
 
 begin
 
@@ -262,7 +261,7 @@ begin
 	preBuffer1: preBuffer
 	generic map 
 		(
-			SIZE => SIZEOFCELLBUFFIN,
+			SIZE => SIZEOFCELL,
 			SETUP => 15,
 			HOLD  => 5 -- in clock cycles
 		 )
@@ -279,8 +278,8 @@ begin
 	inputBUF: NBitCircularBuffer
 	generic map
 		(
-			sizeOfCell => SIZEOFCELLBUFFIN, -- size of each cell in the buffer
-			sizeOfBuffer   => SIZEOFBUFFERBUFFIN -- number of cells in buffer
+			sizeOfCell => SIZEOFCELL, -- size of each cell in the buffer
+			sizeOfBuffer   => SIZEOFBUFFER -- number of cells in buffer
 		)
 	port map
 		(
@@ -296,8 +295,8 @@ begin
 	outputBUF: NBitCircularBuffer
 	generic map
 		(
-			sizeOfCell => SIZEOFCELLBUFFOUT, -- size of each cell in the buffer
-			sizeOfBuffer   => SIZEOFBUFFERBUFFOUT -- number of cells in buffer
+			sizeOfCell => SIZEOFCELL, -- size of each cell in the buffer
+			sizeOfBuffer   => SIZEOFBUFFER -- number of cells in buffer
 		)
 	port map
 		(
@@ -324,7 +323,7 @@ begin
 		   reset     => dataAssReset,
 		   dataIn    => dataAssIn,
 			dataValid => dataAssInValid,
-			ready     => dataAssReady,
+			idleOut     => dataAssIdle,
 			dataOut   => dataAssOut,
 		   done      => dataAssDone
 		);
@@ -344,8 +343,9 @@ begin
 		   dataIn    => dataDissIn,
 			dataValid => dataDissValid,
 			dataRead  => dataDissRead,
-			ready     => dataDissReady,
 			dataOut   => dataDissOut,
+			dataOutReady  => dataDissDataOutReady,
+			idleOut     => dataDissIdle,
 		   done      => dataDissDone
 		);
 		
@@ -415,35 +415,39 @@ begin
    --          	  	                                                              |
    --  +---------------------------------------------------------------------------+
    --  |
-   --  |  +--------+        +------------+    +-------------+      +-----------+
-   --  +->+PIPELINE+------->+DISASSEMBLER+--->+OUTPUT BUFFER+------+TRANSMITTER|---> TO COMPUTER
-   --     +--------+        +------------+    +-------------+      +-----------+
+   --  |  +--------+        +-------------+    +------------+      +-----------+
+   --  +->+PIPELINE+------->+OUTPUT BUFFER+--->+DISASSEMBLER+------+TRANSMITTER|---> TO COMPUTER
+   --     +--------+        +-------------+    +------------+      +-----------+
+	
+	--All resets 0 to get rid of warning messages for now, write init procedure later
+	globalReset <= '0';
 	
 	--reciever to assembler connection
 	dataAssIn <= recChar;
-	
-	with recChar select								--makes it ignore the '$'
-	dataAssInValid <= '0' when "00100100",
-							recValid when others;
+	dataAssInValid <= recValid;
 		
-	--Assembler to pre buffer connection
-	preBufDataIn <= dataAssOut;
-	preBufInValid <= dataAssDone;
+--	--Assembler to pre buffer connection
+--	preBufDataIn <= dataAssOut;
+--	preBufInValid <= dataAssDone;
+--	
+--	--Prebuffer to input buffer connection
+--	inputBufDataIn <= preBufDataOut;
+--	inputBufReady <= preBufValid;
 	
-	--Prebuffer to input buffer connection
-	inputBufDataIn <= preBufDataOut;
-	inputBufReady <= preBufValid;
+	--Straight through connection, no prebuffer
+	inputBufDataIn <= dataAssOut;
+	inputBufReady <= dataAssDone;
 	
 	--Input buffer to pipeline connection
 	algDataIn <= inputBufDataOut;
 	
 		BuffAlg: process(clk)
-		variable state : integer range 0 to 2 := 0;
+		variable state : integer range 0 to 3 := 0;
 		begin
 			if rising_edge(clk) then
 				inputBufRead <= '0';
 				algDataInValid <= '0';
-				if inputBufEntries /= 0 and state = 0 then
+				if inputBufEntries = SIZEOFBUFFERBUFFIN and state = 0 then --straight through connection, so it checks whether the disassembler is free, but should check whether the algorithm is free
 					inputBufRead <= '0';
 					algDataInValid <= '1';
 					state := 1;
@@ -453,7 +457,17 @@ begin
 					state := 2;
 				elsif state = 2 then
 					inputBufRead <= '0';
-					state := 0;
+					if inputBufEntries /= 0 then
+						state := 3;
+					else
+						state := 0;
+					end if;
+				elsif state = 3 then
+					if dataDissDone = '1' then
+						inputBufRead <= '0';
+						algDataInValid <= '1';
+						state := 1;
+					end if;
 				end if;
 			end if;
 		end process;
@@ -467,19 +481,14 @@ begin
 	outputBufDataIn <= dataDissOut;
 		--$$$$$$ dataDissRead and and outputBufReady need to be toggled here by a process $$$$$$$$$
 			-- until dataDissDone
-	
-	
-	--All resets 0 to get rid of warning messages for now, write init procedure later
-	globalReset <= '0';
-	
-	
+		
 		DissBuff: process(clk)
 		variable state : integer range 0 to 2 := 0;
 		begin
 			if rising_edge(clk) then
 				outputBufReady <= '0';
 				dataDissRead <= '0';
-				if dataDissReady = '1' and state = 0 then
+				if dataDissDataOutReady = '1' and state = 0 then
 					dataDissRead <= '0';
 					outputBufReady <= '1';
 					state := 1;
@@ -522,7 +531,4 @@ begin
 			end if;
 		end if;
 	end process;
-	
-
-
 end Behavioral;

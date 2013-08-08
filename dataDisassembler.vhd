@@ -12,8 +12,9 @@ entity dataDisassembler is
 		      dataIn    : in unsigned(inputBits-1 downto 0);
 				dataValid : in std_logic;
 				dataRead  : in std_logic;
-				ready     : out std_logic;
+				dataOutReady     : out std_logic;
 				dataOut   : out unsigned(outputBits-1 downto 0);
+				idleOut   : out std_logic;
 		      done      : out std_logic);
 end dataDisassembler;
 
@@ -65,21 +66,24 @@ begin
 		nextDataIn <= currentDataIn;
 		nextDataOut <= currentDataOut;
 		nextDone <= currentDone;
-		ready <= '0';
+		dataOutReady <= '0';
+		idleOut <= '0';
 	
 		case currentState is
 			when idle =>
-				ready <= '0';
+				idleOut <= '1';
+				dataOutReady <= '0';
 				nextDone <= '0';
 				if dataValid = '1' then
+					idleOut <= '0';
 					nextDataIn <= dataIn;
 					nextState <= pushing;
 					nextDataOut <= dataIn(INPUTBITS - currentPointer*OUTPUTBITS - 1 downto INPUTBITS - (currentPointer+1)*OUTPUTBITS);
-					ready <= '0';
+					dataOutReady <= '0';
 				end if;
 			
 			when pushing =>
-				ready <= '1';
+				dataOutReady <= '1';
 				nextDataOut <= currentDataIn(INPUTBITS - currentPointer*OUTPUTBITS - 1 downto INPUTBITS - (currentPointer+1)*OUTPUTBITS);
 				
 				if dataRead = '1' then

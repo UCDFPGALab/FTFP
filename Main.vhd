@@ -144,7 +144,7 @@ architecture Behavioral of Main is
 	
 	--Disassembler/assembler constants
 	constant BROKENBITS   : integer := 8;
-	constant	LUMPBITS  : integer := SIZEOFCELLBUFF;
+	constant	LUMPBITS  : integer := SIZEOFCELL;
 	constant DELAY1  : integer := 15;
 	constant DELAY2 : integer := 2;
 	
@@ -419,6 +419,8 @@ begin
    --  +->+PIPELINE+------->+OUTPUT BUFFER+--->+DISASSEMBLER+------+TRANSMITTER|---> TO COMPUTER
    --     +--------+        +-------------+    +------------+      +-----------+
 	
+	--Prebuffer might not be necessary if all my timing is worked out perfectly
+	
 	--All resets 0 to get rid of warning messages for now, write init procedure later
 	globalReset <= '0';
 	
@@ -447,88 +449,85 @@ begin
 			if rising_edge(clk) then
 				inputBufRead <= '0';
 				algDataInValid <= '0';
-				if inputBufEntries = SIZEOFBUFFERBUFFIN and state = 0 then --straight through connection, so it checks whether the disassembler is free, but should check whether the algorithm is free
-					inputBufRead <= '0';
+				if inputBufEntries = SIZEOFBUFFER and state = 0 then
+					inputBufRead <= '1';
 					algDataInValid <= '1';
 					state := 1;
 				elsif state = 1 then
 					algDataInValid <= '0';
-					inputBufRead <= '1';
+					inputBufRead <= '0';
 					state := 2;
 				elsif state = 2 then
-					inputBufRead <= '0';
 					if inputBufEntries /= 0 then
 						state := 3;
 					else
 						state := 0;
 					end if;
 				elsif state = 3 then
-					if dataDissDone = '1' then
-						inputBufRead <= '0';
-						algDataInValid <= '1';
-						state := 1;
-					end if;
-				end if;
-			end if;
-		end process;
-	
-	--Pipeline to disassembler connection
-	dataDissIn <= algDataOut;
-	dataDissValid <= algValid;
-		
-	
-	--Disassembler to output buffer connection
-	outputBufDataIn <= dataDissOut;
-		--$$$$$$ dataDissRead and and outputBufReady need to be toggled here by a process $$$$$$$$$
-			-- until dataDissDone
-		
-		DissBuff: process(clk)
-		variable state : integer range 0 to 2 := 0;
-		begin
-			if rising_edge(clk) then
-				outputBufReady <= '0';
-				dataDissRead <= '0';
-				if dataDissDataOutReady = '1' and state = 0 then
-					dataDissRead <= '0';
-					outputBufReady <= '1';
+					inputBufRead <= '1';
+					algDataInValid <= '1';
 					state := 1;
-				elsif state = 1 then
-					dataDissRead <= '1';
-					outputBufReady <= '0';
-					state := 2;
-				elsif state = 2 then
-					dataDissRead <= '0';
-					outputBufReady <= '0';
-					state := 0;
 				end if;
 			end if;
 		end process;
-			
-	--OutputBuffer to transmitter connection
-	transChar <= outputBufDataOut;
 	
-	outputBufRead <= transStart;
-					
-	ReadMonitor: process(clk)
-	variable state : integer range 0 to 3;
+	--Pipeline to output buffer connection connection
+	outputBufDataIn <= algDataOut;
+	outputBufReady <= algValid;
+	
+	--Output buffer to disassembler connection
+	
+	dataDissIn <= outputBufDataOut;
+	
+	BuffDiss: process(clk)
+	variable state : integer range 0 to 3 := 0;
 	begin
 		if rising_edge(clk) then
-			if state = 0 and outputBufEntries /= 0 then
-				transStart <= '1';
+			outputBufRead <= '0';
+			dataDissValid <= '0';
+			if outputBufEntries = SIZEOFBUFFER and state = 0 then --buffer is full, start outputting all this stuff onto the computer
+				outputBufRead <= '1';
+				dataDissValid <= '1';
 				state := 1;
 			elsif state = 1 then
-				transStart <= '0';
-				if transDone = '1' then
-					state := 2;
-				end if;
+				state := 2;
 			elsif state = 2 then
-				if outputBufEntries /= 0 then
-					transStart <= '1';
-					state := 1;
-				else
+				if outputBufEntries /= 0 and dataDissIdle = '1' then
+					state := 3;
+				elsif outputBufEntries = 0 then
+					state := 0;
+				end if;
+			elsif state = 3 then
+				outputBufRead <= '1';
+				dataDissValid <= '1';
+				state := 1;
+			end if;
+		end if;
+	end process;
+	
+	-- Disassembler to transmitter connection
+	
+	transChar <= dataDissOut;
+	
+	DissTrans: process(clk)
+	variable state : integer range 0 to 2 := 0;
+	begin
+		if rising_edge(clk) then
+			transStart <= '0';
+			dataDissRead <= '0';
+			if dataDissDataOutReady = '1' and state = 0 then
+				transStart <= '1';
+				dataDissRead <= '1';
+				state := 1;
+			elsif state = 1 then
+				state := 2;
+			elsif state = 2 then
+				if transDone = '1' then
 					state := 0;
 				end if;
 			end if;
 		end if;
 	end process;
+	
+					
 end Behavioral;

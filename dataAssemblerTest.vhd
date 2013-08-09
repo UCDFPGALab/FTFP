@@ -19,7 +19,7 @@ ARCHITECTURE behavior OF dataAssemblerTest IS
          reset : IN  std_logic;
          dataIn : IN  unsigned(7 downto 0);
          dataValid : IN  std_logic;
-         dataOut : OUT  unsigned(127 downto 0);
+         dataOut : OUT  unsigned(23 downto 0);
          done : OUT  std_logic
         );
     END COMPONENT;
@@ -32,7 +32,7 @@ ARCHITECTURE behavior OF dataAssemblerTest IS
    signal dataValid : std_logic := '0';
 
  	--Outputs
-   signal dataOut : unsigned(127 downto 0);
+   signal dataOut : unsigned(23 downto 0);
    signal done : std_logic;
 
    -- Clock period definitions
@@ -45,7 +45,7 @@ BEGIN
 	GENERIC MAP(
 	
 				INPUTBITS   => 8,
-				OUTPUTBITS  => 128,  --4x4 1 byte grid
+				OUTPUTBITS  => 24,  --4x4 1 byte grid
 				INPUTDELAY  => 15,
 				OUTPUTDELAY => 2
 				)
@@ -78,11 +78,31 @@ BEGIN
 
       -- insert stimulus here 
 		reset <= '0';
-		dataIn <= "10101010";
 		
 		
 		for I in 0 to 300 loop
 			dataValid <= '1';
+			dataIn <= "10101010";
+			wait for clk_period;
+			dataValid <= '0';
+			wait for clk_period;
+			dataValid <= '1';
+			dataIn <= "00001111";
+			wait for clk_period;
+			dataValid <= '0';
+			wait for clk_period;
+			dataValid <= '1';
+			dataIn <= "10101010";
+			wait for clk_period;
+			dataValid <= '0';
+			wait for clk_period;
+			dataValid <= '1';
+			dataIn <= "00001111";
+			wait for clk_period;
+			dataValid <= '0';
+			wait for clk_period;
+			dataValid <= '1';
+			dataIn <= "10101010";
 			wait for clk_period;
 			dataValid <= '0';
 			wait for clk_period;

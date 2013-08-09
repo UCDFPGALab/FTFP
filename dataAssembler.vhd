@@ -18,7 +18,7 @@ end dataAssembler;
 
 architecture Behavioral of dataAssembler is
 
-	type state_type is (idle, getting);
+	type state_type is (idle, getting, doneState);
 	signal currentState, nextState : state_type := idle;
 	
 	signal currentPointer, nextPointer : integer range 0 to OUTPUTBITS/INPUTBITS - 1 := 0;
@@ -82,9 +82,12 @@ begin
 				
 				if ((currentPointer + 1)*INPUTBITS = OUTPUTBITS) and dataValid = '1' then
 						nextPointer <= 0;
-						nextDone <= '1';
-						nextState <= idle;
+						nextState <= doneState;
 				end if;
+				
+			when doneState =>
+				nextDone <= '1';
+				nextState <= idle;
 				
 			
 		end case;

@@ -29,7 +29,7 @@
     </file>
     <file xil_pn:name="Main.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="0"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="9"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="10"/>
     </file>
     <file xil_pn:name="Spartan6IO.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
@@ -74,7 +74,13 @@
     </file>
     <file xil_pn:name="dataAssemblerTest.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="0"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+      <association xil_pn:name="PostMapSimulation" xil_pn:seqID="14"/>
+      <association xil_pn:name="PostRouteSimulation" xil_pn:seqID="14"/>
+      <association xil_pn:name="PostTranslateSimulation" xil_pn:seqID="14"/>
+    </file>
+    <file xil_pn:name="constants.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="74"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="9"/>
     </file>
   </files>
 
@@ -407,7 +413,9 @@
     <binding xil_pn:location="/Main" xil_pn:name="Spartan6IO.ucf"/>
   </bindings>
 
-  <libraries/>
+  <libraries>
+    <library xil_pn:name="vhdl_proposed"/>
+  </libraries>
 
   <autoManagedFiles>
     <!-- The following files are identified by `include statements in verilog -->

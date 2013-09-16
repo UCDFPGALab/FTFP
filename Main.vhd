@@ -119,7 +119,7 @@ architecture Behavioral of Main is
 				);
 	port    (clk      : in std_logic;
 		      reset    : in std_logic;
-		      dataIn   : in unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0);
+		      dataIn   : in unsigned(SIZEOFCELL-1 downto 0);
 				dataInValid : in std_logic;
 				dataOut  : out unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0);
 				valid    : out std_logic);
@@ -146,7 +146,7 @@ architecture Behavioral of Main is
 	--Buffer signals
 	signal inputBufReset, inputBufRead, inputBufReady, outputBufReset, outputBufRead, outputBufReady : std_logic := '0';
 	signal inputBufDataIn, inputBufDataOut : unsigned(SIZEOFCELL-1 downto 0) := (others => '0');
-	signal outputBufDataIn, outputBufDataOut : unsigned(SIZEOFCELL-1 downto 0) := (others => '0');
+	signal outputBufDataIn, outputBufDataOut : unsigned(SIZEOFCELL/2-1 downto 0) := (others => '0');
 	signal inputBufEntries : integer range 0 to SIZEOFBUFFER := 0;
 	signal outputBufEntries : integer range 0 to SIZEOFBUFFER := 0;
 	
@@ -157,11 +157,13 @@ architecture Behavioral of Main is
 	--Assembler/Disassembler signals
 	signal dataAssReset, dataDissReset, dataAssInValid, dataAssIdle, dataDissIdle, dataAssDone, dataDissValid, dataDissRead, dataDissDone, dataDissDataOutReady : std_logic := '0';
 	signal dataAssIn, dataDissOut : unsigned (BROKENBITS - 1 downto 0) := (others => '0');
-	signal dataAssOut, dataDissIn : unsigned (LUMPBITS - 1 downto 0) := (others => '0');
+	signal dataAssOut : unsigned (LUMPBITS - 1 downto 0) := (others => '0');
+	signal dataDissIn : unsigned (LUMPBITS/2 - 1 downto 0) := (others => '0');
 	
 	--Algorithm signals
 	signal algreset, algDataInValid, algValid : std_logic := '0';
-	signal algDataIn, algDataOut : unsigned (SIZEOFCELL - 1 downto 0) := (others => '0');
+	signal algDataIn : unsigned (SIZEOFCELL - 1 downto 0) := (others => '0');
+	signal algDataOut : unsigned (SIZEOFCELL/2 - 1 downto 0) := (others => '0');
 
 begin
 
@@ -269,7 +271,7 @@ begin
 	outputBUF: NBitCircularBuffer
 	generic map
 		(
-			sizeOfCell => SIZEOFCELL, -- size of each cell in the buffer
+			sizeOfCell => SIZEOFCELL/2, -- size of each cell in the buffer
 			sizeOfBuffer   => SIZEOFBUFFER -- number of cells in buffer
 		)
 	port map
@@ -305,7 +307,7 @@ begin
 	dataDiss1: dataDisassembler
 	generic map 
 		(
-			INPUTBITS   => LUMPBITS,
+			INPUTBITS   => LUMPBITS/2,
 			OUTPUTBITS  => BROKENBITS,
 			INPUTDELAY  => DELAY1,
 			OUTPUTDELAY => DELAY2

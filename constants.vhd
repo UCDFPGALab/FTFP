@@ -14,7 +14,7 @@ package constants is
 	constant PARITY : boolean := false; --not implemented yet, keep false
 	
 	--Buffer constants
-	constant SIZEOFCELL : integer := 128; -- size of each cell in the buffer (in bits)
+	constant SIZEOFCELL : integer := 256; -- size of each cell in the buffer (in bits)
 	constant SIZEOFBUFFER : integer := 3; -- number of cells in buffer
 	
 	--PreBuffer constants

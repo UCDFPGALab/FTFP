@@ -68,18 +68,6 @@ architecture Behavioral of Main is
 			tick   : out std_logic);
 	end component;
 	
-	component preBuffer is
-	generic (SIZE  : integer := 128;
-				SETUP : integer := 1;
-				HOLD  : integer := 1); -- in clock cycles
-	port    (clk      : in std_logic;
-		      reset    : in std_logic;
-		      dataIn   : in unsigned(SIZE - 1 downto 0);
-				dataInValid : in std_logic;
-				dataOut  : out unsigned(SIZE - 1 downto 0);
-				valid    : out std_logic);
-	end component;
-	
 	component dataAssembler is
 	generic (INPUTBITS   : integer := 8;
 				OUTPUTBITS  : integer := 128;  --4x4 1 byte grid
@@ -149,10 +137,6 @@ architecture Behavioral of Main is
 	signal outputBufDataIn, outputBufDataOut : unsigned(SIZEOFCELL/2-1 downto 0) := (others => '0');
 	signal inputBufEntries : integer range 0 to SIZEOFBUFFER := 0;
 	signal outputBufEntries : integer range 0 to SIZEOFBUFFER := 0;
-	
-	--Pre buffer signals
-	signal preBufInValid, preBufValid, preBufReset : std_logic := '0';
-	signal preBufDataIn, preBufDataOut : unsigned(SIZEOFCELL - 1 downto 0) := (others => '0');
 	
 	--Assembler/Disassembler signals
 	signal dataAssReset, dataDissReset, dataAssInValid, dataAssIdle, dataDissIdle, dataAssDone, dataDissValid, dataDissRead, dataDissDone, dataDissDataOutReady : std_logic := '0';
@@ -233,23 +217,6 @@ begin
 		char  => recChar,
 		valid => recValid
 	);
-	
-	preBuffer1: preBuffer
-	generic map 
-		(
-			SIZE => SIZEOFCELL,
-			SETUP => 15,
-			HOLD  => 5 -- in clock cycles
-		 )
-	port map
-		(
-			clk      => clk,
-		   reset    => preBufReset,
-		   dataIn   => preBufDataIn,
-			dataInValid => preBufInValid,
-			dataOut  => preBufDataOut,
-			valid    => preBufValid
-		 );
 	
 	inputBUF: NBitCircularBuffer
 	generic map

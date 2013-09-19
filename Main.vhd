@@ -384,6 +384,7 @@ begin
 	inputBufReady <= dataAssDone;
 	
 	--Input buffer to pipeline connection
+	--Modified to push into the algorithm module right away
 	algDataIn <= inputBufDataOut;
 	
 		BuffAlg: process(clk)
@@ -397,19 +398,13 @@ begin
 					algDataInValid <= '1';
 					state := 1;
 				elsif state = 1 then
-					algDataInValid <= '0';
-					inputBufRead <= '0';
-					state := 2;
-				elsif state = 2 then
-					if inputBufEntries /= 0 then
-						state := 3;
-					else
-						state := 0;
-					end if;
-				elsif state = 3 then
-					inputBufRead <= '1';
 					algDataInValid <= '1';
-					state := 1;
+					inputBufRead <= '1';
+					if inputBufEntries = 1 then
+						state := 0;
+						algDataInValid <= '0';
+						inputBufRead <= '0';
+					end if;
 				end if;
 			end if;
 		end process;

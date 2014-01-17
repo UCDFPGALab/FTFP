@@ -3,17 +3,21 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity dataAssembler is
-	generic (INPUTBITS   : integer := 8;
-				OUTPUTBITS  : integer := 128;  --4x4 1 byte grid
-				INPUTDELAY  : integer := 15;
-				OUTPUTDELAY : integer := 2);
-	port    (clk       : in std_logic;
-		      reset     : in std_logic;
-		      dataIn    : in unsigned(inputBits-1 downto 0);
-				dataValid : in std_logic;
-				dataOut   : out unsigned(outputBits-1 downto 0);
-				idleOut      : out std_logic;
-		      done      : out std_logic);
+	generic (
+		INPUTBITS   : integer := 8;
+		OUTPUTBITS  : integer := 128;  --4x4 1 byte grid
+		INPUTDELAY  : integer := 15;
+		OUTPUTDELAY : integer := 2
+	);
+	port (
+		clk       : in std_logic;
+		reset     : in std_logic;
+		dataIn    : in unsigned(inputBits-1 downto 0);
+		dataValid : in std_logic;
+		dataOut   : out unsigned(outputBits-1 downto 0);
+		idleOut      : out std_logic;
+		done      : out std_logic
+	);
 end dataAssembler;
 
 architecture Behavioral of dataAssembler is
@@ -88,9 +92,7 @@ begin
 			when doneState =>
 				nextDone <= '1';
 				nextState <= idle;
-				
 			
 		end case;
-	
 	end process;
 end Behavioral;

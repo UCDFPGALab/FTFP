@@ -3,30 +3,33 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity Pipeline is
-	generic (SETUP : integer := 1; --time after the "start" pulse that the pipeline waits to start operating
-				HOLD  : integer := 1; --time after the pipeline is done that it waits to send the "done" pulse
-				ROWS : integer := 4; -- size in ints
-				COLUMNS : integer := 4;
-				INTSIZE : integer := 8 -- size of the int in bits, 4 for the 3 digit HEX example
-				);
-	port    (clk      : in std_logic;
-		      reset    : in std_logic;
-		      dataIn   : in unsigned(INTSIZE*ROWS*COLUMNS*2-1 downto 0);
-				dataInValid : in std_logic;
-				dataOut  : out unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0);
-				valid    : out std_logic);
+	generic (
+		SETUP : integer := 1; --time after the "start" pulse that the pipeline waits to start operating
+		HOLD  : integer := 1; --time after the pipeline is done that it waits to send the "done" pulse
+		ROWS : integer := 4; -- size in ints
+		COLUMNS : integer := 4;
+		INTSIZE : integer := 8 -- size of the int in bits, 4 for the 3 digit HEX example
+	);
+	port ( 
+		clk      : in std_logic;
+		reset    : in std_logic;
+		dataIn   : in unsigned(INTSIZE*ROWS*COLUMNS*2-1 downto 0);
+		dataInValid : in std_logic;
+		dataOut  : out unsigned(INTSIZE*ROWS*COLUMNS-1 downto 0);
+		valid    : out std_logic
+	);
 end Pipeline;
 
 architecture Behavioral of Pipeline is
 	
-	subtype tmp is unsigned(INTSIZE-1 downto 0);
-	type arr1 is array(0 to ROWS-1, 0 to COLUMNS-1) of tmp;
+	subtype eightbitint is unsigned(INTSIZE-1 downto 0);
+	type arr1 is array(0 to ROWS-1, 0 to COLUMNS-1) of eightbitint;
 	type arr2 is array(0 to 10) of arr1;
 	
 	signal memory : arr2 := (others => (others => (others => (others => '0'))));
 	signal counter : integer range 0 to 127 := 0;
 	
-	constant flow : integer := 3;
+	constant flow : integer := 3; --steps in the pipeline
 	
 	signal pipe : unsigned(0 to flow) := (others => '0');
 
@@ -81,7 +84,7 @@ begin
 	end process;
 	
 
---************ CODE BLOCK FOR THE SECOND PASRT OF THE JETS ALGORITHM
+--************ CODE BLOCK FOR THE SECOND PART OF THE JETS ALGORITHM
 --	-- inspired by alonho/game_of_life_vhdl
 --	outer: for row in 0 to ROWS - 1 generate
 --      inner: for column in 0 to COLUMNS - 1 generate
@@ -180,7 +183,5 @@ begin
 --              
 --            end generate lower_right;
 --        end generate inner;
---    end generate outer;
-
-	
+--    end generate outer;	
 end Behavioral;

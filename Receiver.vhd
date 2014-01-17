@@ -9,14 +9,17 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-
 entity Receiver is
-	generic(BAUD: integer := 434); --constant BAUD = clock rate (50MHz) / Baud rate of serial connection
-	port( rxd   : in std_logic;  -- reciever line
-			reset : in std_logic;
-			clk   : in std_logic;
-			char  : out unsigned(7 downto 0);
-			valid : out std_logic := '0');
+	generic (
+		BAUD: integer := 434 --constant BAUD = clock rate (50MHz) / Baud rate of serial connection
+	);
+	port (
+		rxd   : in std_logic;  -- reciever line
+		reset : in std_logic;
+		clk   : in std_logic;
+		char  : out unsigned(7 downto 0);
+		valid : out std_logic := '0'
+	);
 end Receiver;
 
 architecture Behavioral of Receiver is

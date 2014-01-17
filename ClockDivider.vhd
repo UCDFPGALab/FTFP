@@ -6,12 +6,16 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity ClockDivider is
-	generic(divider    : integer := 2;
-			  lengthOfHi : integer := 1); --in clock cycles, has to be less than divider, more than 1
-	port( clk    : in std_logic;
-			reset  : in std_logic;
-			enable : in std_logic;
-			tick   : out std_logic);
+	generic (
+		divider    : integer := 2;
+		lengthOfHi : integer := 1 --in clock cycles, has to be less than divider, more than 1
+	);
+	port (
+		clk    : in std_logic;
+		reset  : in std_logic;
+		enable : in std_logic;
+		tick   : out std_logic
+	);
 end ClockDivider;
 
 architecture Behavioral of ClockDivider is

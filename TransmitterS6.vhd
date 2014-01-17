@@ -9,17 +9,21 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity Transmitter is
-	generic (BAUD       : integer := 434; --BAUD = clock rate (50MHz) / Baud rate of serial connection
-				stopBits   : integer range 0 to 2 := 1;
-				dataBits   : integer range 7 to 8 := 8;
-				parityBit  : boolean := false); --does even parity
-	port    (clk      : in std_logic;
-		      reset    : in std_logic;
-		      start    : in std_logic;
-		      dataIn   : in unsigned(7 downto 0);
-		      txd      : out std_logic; --output transmit line
-		      done     : out std_logic;
-				ready    : out std_logic);
+	generic (
+		BAUD			: integer := 434; --BAUD = clock rate (50MHz) / Baud rate of serial connection
+		stopBits		: integer range 0 to 2 := 1;
+		dataBits		: integer range 7 to 8 := 8;
+		parityBit	: boolean := false --does even parity
+	);
+	port (
+		clk		: in std_logic;
+		reset		: in std_logic;
+		start		: in std_logic;
+		dataIn	: in unsigned(7 downto 0);
+		txd		: out std_logic; --output transmit line
+		done		: out std_logic;
+		ready		: out std_logic
+	);
 end Transmitter;
 
 architecture Behavioral of Transmitter is
@@ -28,12 +32,16 @@ architecture Behavioral of Transmitter is
 	--------------------------------------
 	
 	component ClockDivider is
-	generic(divider    : integer := 2;
-			  lengthOfHi : integer := 1); --in clock cycles, has to be less than divider, more than 1
-	port( clk    : in std_logic;
-			reset  : in std_logic;
-			enable : in std_logic;
-			tick   : out std_logic);
+	generic (
+		divider		: integer := 2;
+		lengthOfHi	: integer := 1 --in clock cycles, has to be less than divider, more than 1
+	);
+	port (
+		clk		: in std_logic;
+		reset		: in std_logic;
+		enable	: in std_logic;
+		tick		: out std_logic
+	);
 	end component;
 	
 	--------------------------------------
@@ -55,18 +63,29 @@ begin
 	-- 			Port Maps					--
 	--------------------------------------
 	TickGenerator: ClockDivider
-	generic map(divider => BAUD,
-					lengthOfHi => 1) --in clock cycles, has to be less than divider, more than 1
-	port map(clk    => clk,
-				reset  => tickReset,
-				enable => tickEnable,
-				tick   => tick);
+	generic map (
+		divider 		=> BAUD,
+		lengthOfHi 	=> 1 --in clock cycles, has to be less than divider, more than 1
+	)
+	port map (
+		clk		=> clk,
+		reset		=> tickReset,
+		enable	=> tickEnable,
+		tick		=> tick
+	);
 	
 	-------------------------------------- 
 	-- 				Code						--
 	--------------------------------------
 	parityCalc <= resize(data, 8);
-	parityBitCalc <= parityCalc(0) xor parityCalc(1) xor parityCalc(2) xor parityCalc(3) xor parityCalc(4) xor parityCalc(5) xor parityCalc(6) xor parityCalc(7);
+	parityBitCalc <= parityCalc(0) xor 
+						  parityCalc(1) xor 
+						  parityCalc(2) xor 
+						  parityCalc(3) xor 
+						  parityCalc(4) xor 
+						  parityCalc(5) xor 
+						  parityCalc(6) xor 
+						  parityCalc(7);
 	
 	clocked: process(clk, reset)
 	begin
@@ -141,9 +160,8 @@ begin
 					else
 						nextBitCounter <= bitCounter + 1;
 					end if;
-				end if;
-						
+				end if;	
 		end case;
-	
 	end process;
+	
 end Behavioral;

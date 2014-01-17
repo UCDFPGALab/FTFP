@@ -8,15 +8,18 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity NBitCircularBuffer is
-	generic (sizeOfCell : integer := 8; -- size of each cell in the buffer
-				sizeOfBuffer   : integer := 32); -- number of cells in buffer
-	port    (clk            : in std_logic;
-				reset          : in std_logic;
-				inputData      : in unsigned (sizeOfCell - 1 downto 0);
-				inputReady     : in std_logic; --should only be high for one clock cycle, otherwise store data twice
-				valueRead      : in std_logic; --should be asserted when you've read the current output value
-				entries        : out integer range 0 to sizeOfBuffer;
-				outputData     : out unsigned (sizeOfCell - 1 downto 0));
+	generic (
+		sizeOfCell 		: integer := 8; -- size of each cell in the buffer
+		sizeOfBuffer	: integer := 32 -- number of cells in buffer
+	);
+	port (
+		clk			: in std_logic;
+		reset			: in std_logic;
+		inputData	: in unsigned (sizeOfCell - 1 downto 0);
+		inputReady	: in std_logic; --should only be high for one clock cycle, otherwise store data twice
+		valueRead	: in std_logic; --should be asserted when you've read the current output value
+		entries		: out integer range 0 to sizeOfBuffer;
+		outputData	: out unsigned (sizeOfCell - 1 downto 0));
 end NBitCircularBuffer;
 
 architecture Behavioral of NBitCircularBuffer is	

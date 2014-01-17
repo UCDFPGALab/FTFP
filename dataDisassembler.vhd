@@ -3,19 +3,23 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity dataDisassembler is
-	generic (INPUTBITS   : integer := 128;
-				OUTPUTBITS  : integer := 8;  --4x4 1 byte grid
-				INPUTDELAY  : integer := 15;
-				OUTPUTDELAY : integer := 2);
-	port    (clk       : in std_logic;
-		      reset     : in std_logic;
-		      dataIn    : in unsigned(inputBits-1 downto 0);
-				dataValid : in std_logic;
-				dataRead  : in std_logic;
-				dataOutReady     : out std_logic;
-				dataOut   : out unsigned(outputBits-1 downto 0);
-				idleOut   : out std_logic;
-		      done      : out std_logic);
+	generic (
+		INPUTBITS   : integer := 128;
+		OUTPUTBITS  : integer := 8;  --4x4 1 byte grid
+		INPUTDELAY  : integer := 15;
+		OUTPUTDELAY : integer := 2
+	);
+	port (
+		clk       : in std_logic;
+		reset     : in std_logic;
+		dataIn    : in unsigned(inputBits-1 downto 0);
+		dataValid : in std_logic;
+		dataRead  : in std_logic;
+		dataOutReady     : out std_logic;
+		dataOut   : out unsigned(outputBits-1 downto 0);
+		idleOut   : out std_logic;
+		done      : out std_logic
+	);
 end dataDisassembler;
 
 architecture Behavioral of dataDisassembler is
@@ -96,8 +100,6 @@ begin
 					end if;
 				end if;
 				
-			
 		end case;
-	
 	end process;
 end Behavioral;
